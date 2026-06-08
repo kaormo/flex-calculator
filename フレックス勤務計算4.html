@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>フレックス勤務時間計算</title>
+
+<style>
+
+body{
+    font-family:Arial,sans-serif;
+    background:#f5f6fa;
+    margin:0;
+    padding:15px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 0 10px rgba(0,0,0,.15);
+}
+
+h1{
+    text-align:center;
+    color:#1f4e79;
+}
+
+.section{
+    margin-bottom:20px;
+}
+
+label{
+    display:block;
+    margin-bottom:5px;
+    font-weight:bold;
+}
+
+.row{
+    display:flex;
+    gap:10px;
+}
+
+.row select{
+    flex:1;
+    padding:10px;
+    font-size:16px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    margin-top:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:18px;
+}
+
+.calc{
+    background:#0078d7;
+    color:white;
+}
+
+.clear{
+    background:#888;
+    color:white;
+}
+
+.detail{
+    background:#28a745;
+    color:white;
+}
+
+.result{
+    margin-top:20px;
+    padding:15px;
+    background:#f8f9fc;
+    border-radius:10px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:center;
+}
+
+th{
+    background:#e9f0ff;
+}
+
+.ok{
+    color:green;
+    font-weight:bold;
+}
+
+.ng{
+    color:red;
+    font-weight:bold;
+}
+
+.info{
+    color:#1f4e79;
+    font-weight:bold;
+}
+
+.hidden{
+    display:none;
+}
+
+@media(max-width:600px){
+
+.row{
+    flex-direction:column;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>フレックス勤務時間計算</h1>
+
+<div class="section">
+
+<label>勤務区分</label>
+
+<select id="workType">
+
+<option value="day">昼勤</option>
+
+<option value="night">夜勤</option>
+
+</select>
+
+</div>
+
+<div class="section">
+
+<label>出勤時間</label>
+
+<div class="row">
+
+<select id="startHour"></select>
+
+<select id="startMinute"></select>
+
+</div>
+
+</div>
+
+<div class="section">
+
+<label>退勤時間（任意）</label>
+
+<div class="row">
+
+<select id="endHour"></select>
+
+<select id="endMinute"></select>
+
+</div>
+
+</div>
+
+<button class="calc"
+onclick="calculate()">
+
+計算
+
+</button>
+
+<button class="clear"
+onclick="location.reload()">
+
+クリア
+
+</button>
+
+<div id="result"
+class="result hidden">
+</div>
+
+<div id="detailButtons"
+class="hidden">
+
+<button class="detail"
+onclick="show15()">
+
+15分単位表示
+
+</button>
+
+<button class="detail"
+onclick="show30()">
+
+30分単位表示
+
+</button>
+
+</div>
+
+<div id="detailArea"
+class="result hidden">
+</div>
+
+<script>
+
+for(let i=0;i<24;i++){
+
+let t=String(i).padStart(2,"0");
+
+startHour.innerHTML +=
+`<option value="${i}">${t}</option>`;
+
+endHour.innerHTML +=
+`<option value="${i}">${t}</option>`;
+
+}
+
+for(let i=0;i<60;i++){
+
+let t=String(i).padStart(2,"0");
+
+startMinute.innerHTML +=
+`<option value="${i}">${t}</option>`;
+
+endMinute.innerHTML +=
+`<option value="${i}">${t}</option>`;
+
+}
+startHour.value=8;
+startMinute.value=0;
+
+let currentStart=0;
+let currentMode="day";
+
+// ====================
+// 昼勤休憩
+// ====================
+
+const dayBreaks = [
+
+[600,610],   //10:00-10:10
+
+[730,770],   //12:10-12:50
+
+[890,900],   //14:50-15:00
+
+[1020,1030], //17:00-17:10
+
+[1150,1160], //19:10-19:20
+
+[1280,1290]  //21:20-21:30
+
+];
+
+// ====================
+// 昼勤実働
+// ====================
+
+function dayWorkMinutes(start,end){
+
+let total=end-start;
+
+let breakTime=0;
+
+for(let b of dayBreaks){
+
+let overlap=
+
+Math.max(
+0,
+Math.min(end,b[1])
+-
+Math.max(start,b[0])
+);
+
+breakTime += overlap;
+
+}
+
+return total-breakTime;
+
+}
+
+// ====================
+// 夜勤休憩
+// ====================
+
+function nightBreakMinutes(elapsed){
+
+let b=0;
+
+if(elapsed>130) b+=10;
+
+if(elapsed>290) b+=40;
+
+if(elapsed>420) b+=10;
+
+if(elapsed>550) b+=10;
+
+if(elapsed>680) b+=10;
+
+if(elapsed>810) b+=10;
+
+return b;
+
+}
+
+// ====================
+// 夜勤実働
+// ====================
+
+function nightWorkMinutes(start,end){
+
+let span=end-start;
+
+if(span<0){
+
+span += 1440;
+
+}
+
+let breakTime=
+nightBreakMinutes(span);
+
+return span-breakTime;
+
+}
+
+// ====================
+// 共通表示
+// ====================
+
+function formatTime(min){
+
+min=((min%1440)+1440)%1440;
+
+let h=Math.floor(min/60);
+
+let m=min%60;
+
+return String(h).padStart(2,"0")
++":"
++String(m).padStart(2,"0");
+
+}
+
+function formatWork(min){
+
+let h=Math.floor(min/60);
+
+let m=min%60;
+
+return h+"時間"
++String(m).padStart(2,"0")
++"分";
+
+}
+
+function floor15(min){
+
+return Math.floor(min/15)*15;
+
+}
+
+// ====================
+// 昼勤目標時刻
+// ====================
+
+function dayTargetTime(start,target){
+
+for(let t=start;t<=1320;t++){
+
+if(
+dayWorkMinutes(start,t)
+>=target
+){
+
+return t;
+
+}
+
+}
+
+return null;
+
+}
+
+// ====================
+// 夜勤目標時刻
+// ====================
+
+function nightTargetTime(start,target){
+
+for(
+let span=0;
+span<=1000;
+span++
+){
+
+let work=
+span-
+nightBreakMinutes(span);
+
+if(work>=target){
+
+return start+span;
+
+}
+
+}
+
+return null;
+
+}
+
+// ====================
+// 15分表示
+// ====================
+
+function show15(){
+
+let html=
+"<h2>15分単位一覧</h2>";
+
+html +=
+"<table>";
+
+html +=
+"<tr><th>時刻</th><th>勤務時間</th></tr>";
+
+if(currentMode==="day"){
+
+for(
+let t=900;
+t<=1320;
+t+=15
+){
+
+html +=
+"<tr><td>"
++
+formatTime(t)
++
+"</td><td>"
++
+formatWork(
+dayWorkMinutes(
+currentStart,
+t
+)
+)
++
+"</td></tr>";
+
+}
+
+}else{
+
+html +=
+"<tr><th>実働時間</th><th>到達時刻</th></tr>";
+
+for(
+let work=15;
+work<=660;
+work+=15
+){
+
+let targetTime=null;
+
+for(
+let span=0;
+span<=1000;
+span++
+){
+
+let actual=
+span-
+nightBreakMinutes(span);
+
+if(actual>=work){
+
+targetTime=
+currentStart+span;
+
+break;
+
+}
+
+}
+
+if(targetTime){
+
+html +=
+"<tr><td>"
++
+formatWork(work)
++
+"</td><td>"
++
+formatTime(targetTime)
++
+"</td></tr>";
+
+}
+
+}
+
+}
+
+html +=
+"</table>";
+
+detailArea.innerHTML=
+html;
+
+detailArea.classList.remove(
+"hidden"
+);
+
+}
+
+// ====================
+// 30分表示
+// ====================
+
+function show30(){
+
+let html=
+"<h2>30分単位一覧</h2>";
+
+html +=
+"<table>";
+
+if(currentMode==="day"){
+
+html +=
+"<tr><th>時刻</th><th>勤務時間</th></tr>";
+
+for(
+let t=900;
+t<=1320;
+t+=30
+){
+
+html +=
+"<tr><td>"
++
+formatTime(t)
++
+"</td><td>"
++
+formatWork(
+dayWorkMinutes(
+currentStart,
+t
+)
+)
++
+"</td></tr>";
+
+}
+
+}else{
+
+html +=
+"<tr><th>時刻</th><th>勤務時間</th></tr>";
+
+for(
+let span=0;
+span<=900;
+span+=30
+){
+
+let t=
+currentStart
++
+span;
+
+html +=
+"<tr><td>"
++
+formatTime(t)
++
+"</td><td>"
++
+formatWork(
+nightWorkMinutes(
+currentStart,
+t
+)
+)
++
+"</td></tr>";
+
+}
+
+}
+
+html +=
+"</table>";
+
+detailArea.innerHTML=
+html;
+
+detailArea.classList.remove(
+"hidden"
+);
+
+}
+
+
+
+// ====================
+// メイン計算
+// ====================
+
+function calculate(){
+
+currentMode =
+document.getElementById(
+"workType"
+).value;
+
+let sh=
+Number(
+startHour.value
+);
+
+let sm=
+Number(
+startMinute.value
+);
+
+currentStart=
+sh*60+sm;
+
+// 退勤時間の分が未選択なら00にする
+if(
+endHour.selectedIndex >= 0 &&
+endMinute.selectedIndex < 0
+){
+    endMinute.selectedIndex = 0;
+}
+
+let hasEnd =
+endHour.selectedIndex >= 0;
+
+let html="";
+
+// ====================
+// 昼勤
+// ====================
+
+if(currentMode==="day"){
+
+let work1450=
+dayWorkMinutes(
+currentStart,
+890
+);
+
+html +=
+"<h2>14:50時点勤務時間</h2>";
+
+html +=
+"<p class='info'>"
++
+formatWork(work1450)
++
+"</p>";
+
+html += "<hr>";
+
+if(!hasEnd){
+
+html +=
+"<h2>次の勤務時間目安</h2>";
+
+html +=
+"<table>";
+
+html +=
+"<tr><th>勤務時間</th><th>時刻</th></tr>";
+
+let startHourTarget=
+Math.floor(
+work1450/60
+)+1;
+
+for(
+let h=startHourTarget;
+h<=11;
+h++
+){
+
+let t=
+dayTargetTime(
+currentStart,
+h*60
+);
+
+if(t){
+
+html +=
+"<tr><td>"
++h+
+"時間勤務</td><td>"
++
+formatTime(t)
++
+"</td></tr>";
+
+}
+
+}
+
+html +=
+"</table>";
+
+html += "<hr>";
+
+let work2200=
+dayWorkMinutes(
+currentStart,
+1320
+);
+
+html +=
+"<h2>22:00時点勤務時間</h2>";
+
+html +=
+"<p class='info'>"
++
+formatWork(work2200)
++
+"</p>";
+
+detailButtons
+.classList
+.remove("hidden");
+
+}else{
+
+let end=
+Number(endHour.value)
+*60
++
+Number(endMinute.value);
+
+let actual=
+dayWorkMinutes(
+currentStart,
+end
+);
+
+html +=
+"<h2>本日の勤務時間</h2>";
+
+html +=
+"<p>";
+
+html +=
+"実績：<b>"
++
+formatWork(actual)
++
+"</b><br>";
+
+html +=
+"15分単位：<b>"
++
+formatWork(
+floor15(actual)
+)
++
+"</b>";
+
+html +=
+"</p>";
+
+html += "<hr>";
+
+let coreOK=
+
+currentStart<=610
+
+&&
+
+end>=890;
+
+if(coreOK){
+
+html +=
+"<p class='ok'>"
++
+"〇 コアタイム適合"
++
+"</p>";
+
+}else{
+
+html +=
+"<p class='ng'>"
++
+"× コアタイム不足"
++
+"</p>";
+
+}
+
+detailButtons
+.classList
+.add("hidden");
+
+}
+
+}
+
+// ====================
+// 夜勤
+// ====================
+
+else{
+
+if(!hasEnd){
+
+let target=
+nightTargetTime(
+currentStart,
+480
+);
+
+html +=
+"<h2>8時間勤務到達時刻</h2>";
+
+html +=
+"<p class='info'>";
+
+if(target>=1440){
+
+html +=
+"翌 "
++
+formatTime(target);
+
+}else{
+
+html +=
+formatTime(target);
+
+}
+
+html +=
+"</p>";
+
+detailButtons
+.classList
+.remove("hidden");
+
+}else{
+
+let end=
+Number(endHour.value)
+*60
++
+Number(endMinute.value);
+
+let actual=
+nightWorkMinutes(
+currentStart,
+end
+);
+
+html +=
+"<h2>本日の勤務時間</h2>";
+
+html +=
+"<p>";
+
+html +=
+"実績：<b>"
++
+formatWork(actual)
++
+"</b><br>";
+
+html +=
+"15分単位：<b>"
++
+formatWork(
+floor15(actual)
+)
++
+"</b>";
+
+html +=
+"</p>";
+
+let shortage=Math.max(0,480-actual);
+
+html +=
+"<p class='info'>8時間不足："
++
+formatWork(shortage)
++
+"</p>";
+
+html +=
+"<hr>";
+
+let shiftText=
+"対象外";
+
+if(
+currentStart>=720
+&&
+actual>=480
+){
+
+let compare=end;
+
+if(compare<currentStart){
+
+compare += 1440;
+
+}
+
+if(compare<=1570){
+
+shiftText=
+"交代A";
+
+}else{
+
+shiftText=
+"交代B";
+
+}
+
+}
+
+html +=
+"<h2>交代勤務</h2>";
+
+html +=
+"<p class='info'>"
++
+shiftText
++
+"</p>";
+
+if(
+shiftText==="対象外"
+){
+
+if(actual<480){
+
+html +=
+"<p>"
++
+"（実働8時間未満）"
++
+"</p>";
+
+}else if(
+currentStart<720
+){
+
+html +=
+"<p>"
++
+"（12:00前出勤）"
++
+"</p>";
+
+}
+
+}
+
+detailButtons
+.classList
+.add("hidden");
+
+}
+
+}
+
+result.innerHTML=
+html;
+
+result.classList
+.remove("hidden");
+
+detailArea.classList
+.add("hidden");
+
+}
+
+// ====================
+// 初期設定
+// ====================
+
+endHour.selectedIndex=-1;
+endMinute.selectedIndex=-1;
+
+</script>
+
+</body>
+</html>
