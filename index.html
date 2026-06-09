@@ -112,6 +112,28 @@ th{
     font-weight:bold;
 }
 
+.plus{
+    color:#00C853;
+    background:#E8F5E9;
+    border:2px solid #00C853;
+    padding:8px 12px;
+    border-radius:8px;
+    font-weight:bold;
+    display:inline-block;
+    margin-top:8px;
+}
+
+.minus{
+    color:#D50000;
+    background:#FFEBEE;
+    border:2px solid #D50000;
+    padding:8px 12px;
+    border-radius:8px;
+    font-weight:bold;
+    display:inline-block;
+    margin-top:8px;
+}
+
 .hidden{
     display:none;
 }
@@ -125,6 +147,7 @@ th{
 }
 
 </style>
+
 </head>
 
 <body>
@@ -138,11 +161,8 @@ th{
 <label>勤務区分</label>
 
 <select id="workType">
-
 <option value="day">昼勤</option>
-
 <option value="night">夜勤</option>
-
 </select>
 
 </div>
@@ -175,45 +195,30 @@ th{
 
 </div>
 
-<button class="calc"
-onclick="calculate()">
-
+<button class="calc" onclick="calculate()">
 計算
-
 </button>
 
-<button class="clear"
-onclick="location.reload()">
-
+<button class="clear" onclick="location.reload()">
 クリア
-
 </button>
 
-<div id="result"
-class="result hidden">
+<div id="result" class="result hidden">
 </div>
 
-<div id="detailButtons"
-class="hidden">
+<div id="detailButtons" class="hidden">
 
-<button class="detail"
-onclick="show15()">
-
+<button class="detail" onclick="show15()">
 15分単位表示
-
 </button>
 
-<button class="detail"
-onclick="show30()">
-
+<button class="detail" onclick="show30()">
 30分単位表示
-
 </button>
 
 </div>
 
-<div id="detailArea"
-class="result hidden">
+<div id="detailArea" class="result hidden">
 </div>
 
 <script>
@@ -241,6 +246,7 @@ endMinute.innerHTML +=
 `<option value="${i}">${t}</option>`;
 
 }
+
 startHour.value=8;
 startMinute.value=0;
 
@@ -268,7 +274,7 @@ const dayBreaks = [
 ];
 
 // ====================
-// 昼勤実働
+// 昼勤実働計算
 // ====================
 
 function dayWorkMinutes(start,end){
@@ -297,7 +303,7 @@ return total-breakTime;
 }
 
 // ====================
-// 夜勤休憩
+// 夜勤休憩計算
 // ====================
 
 function nightBreakMinutes(elapsed){
@@ -321,7 +327,7 @@ return b;
 }
 
 // ====================
-// 夜勤実働
+// 夜勤実働計算
 // ====================
 
 function nightWorkMinutes(start,end){
@@ -342,7 +348,7 @@ return span-breakTime;
 }
 
 // ====================
-// 共通表示
+// 時刻表示
 // ====================
 
 function formatTime(min){
@@ -359,6 +365,10 @@ return String(h).padStart(2,"0")
 
 }
 
+// ====================
+// 勤務時間表示
+// ====================
+
 function formatWork(min){
 
 let h=Math.floor(min/60);
@@ -370,6 +380,10 @@ return h+"時間"
 +"分";
 
 }
+
+// ====================
+// 15分切り捨て
+// ====================
 
 function floor15(min){
 
@@ -383,7 +397,11 @@ return Math.floor(min/15)*15;
 
 function dayTargetTime(start,target){
 
-for(let t=start;t<=1320;t++){
+for(
+let t=start;
+t<=1320;
+t++
+){
 
 if(
 dayWorkMinutes(start,t)
@@ -429,7 +447,38 @@ return null;
 }
 
 // ====================
-// 15分表示
+// フレックス超過時間表示
+// ====================
+
+function getFlexHtml(actual){
+
+    let workTime = floor15(actual);
+
+    let flexDiff = workTime - 480;
+
+    if(flexDiff > 0){
+
+        return "<div class='plus'>"
+            + "フレックス超過時間：+"
+            + formatWork(flexDiff)
+            + "</div>";
+
+    }
+
+    if(flexDiff < 0){
+
+        return "<div class='minus'>"
+            + "フレックス超過時間：-"
+            + formatWork(Math.abs(flexDiff))
+            + "</div>";
+
+    }
+
+    return "";
+
+}
+// ====================
+// 15分単位表示
 // ====================
 
 function show15(){
@@ -440,10 +489,10 @@ let html=
 html +=
 "<table>";
 
+if(currentMode==="day"){
+
 html +=
 "<tr><th>時刻</th><th>勤務時間</th></tr>";
-
-if(currentMode==="day"){
 
 for(
 let t=900;
@@ -459,9 +508,11 @@ formatTime(t)
 "</td><td>"
 +
 formatWork(
+floor15(
 dayWorkMinutes(
 currentStart,
 t
+)
 )
 )
 +
@@ -472,7 +523,7 @@ t
 }else{
 
 html +=
-"<tr><th>実働時間</th><th>到達時刻</th></tr>";
+"<tr><th>勤務時間</th><th>到達時刻</th></tr>";
 
 for(
 let work=15;
@@ -535,7 +586,7 @@ detailArea.classList.remove(
 }
 
 // ====================
-// 30分表示
+// 30分単位表示
 // ====================
 
 function show30(){
@@ -565,9 +616,11 @@ formatTime(t)
 "</td><td>"
 +
 formatWork(
+floor15(
 dayWorkMinutes(
 currentStart,
 t
+)
 )
 )
 +
@@ -578,34 +631,51 @@ t
 }else{
 
 html +=
-"<tr><th>時刻</th><th>勤務時間</th></tr>";
+"<tr><th>勤務時間</th><th>到達時刻</th></tr>";
+
+for(
+let work=30;
+work<=660;
+work+=30
+){
+
+let targetTime=null;
 
 for(
 let span=0;
-span<=900;
-span+=30
+span<=1000;
+span++
 ){
 
-let t=
-currentStart
-+
-span;
+let actual=
+span-
+nightBreakMinutes(span);
+
+if(actual>=work){
+
+targetTime=
+currentStart+span;
+
+break;
+
+}
+
+}
+
+if(targetTime){
 
 html +=
 "<tr><td>"
 +
-formatTime(t)
+formatWork(work)
 +
 "</td><td>"
 +
-formatWork(
-nightWorkMinutes(
-currentStart,
-t
-)
-)
+formatTime(targetTime)
 +
 "</td></tr>";
+
+}
 
 }
 
@@ -622,8 +692,6 @@ detailArea.classList.remove(
 );
 
 }
-
-
 
 // ====================
 // メイン計算
@@ -649,16 +717,25 @@ startMinute.value
 currentStart=
 sh*60+sm;
 
-// 退勤時間の分が未選択なら00にする
-if(
-endHour.selectedIndex >= 0 &&
-endMinute.selectedIndex < 0
-){
-    endMinute.selectedIndex = 0;
+if(currentMode==="night"){
+
+    if(currentStart < 1020){
+
+        currentStart = 1020;
+
+    }
+
 }
 
-let hasEnd =
-endHour.selectedIndex >= 0;
+if(
+endHour.selectedIndex >=0 &&
+endMinute.selectedIndex <0
+){
+endMinute.selectedIndex=0;
+}
+
+let hasEnd=
+endHour.selectedIndex>=0;
 
 let html="";
 
@@ -678,15 +755,28 @@ html +=
 "<h2>14:50時点勤務時間</h2>";
 
 html +=
-"<p class='info'>"
+"<p class='info'>";
+
+html +=
+"実働："
 +
+formatWork(work1450);
+
+html +=
+"<br>";
+
+html +=
 "勤務時間："
 +
-formatWork(work1450)
-+
+formatWork(
+floor15(work1450)
+);
+
+html +=
 "</p>";
 
-html += "<hr>";
+html +=
+"<hr>";
 
 if(!hasEnd){
 
@@ -697,31 +787,34 @@ html +=
 "<table>";
 
 html +=
-"<tr><th>勤務時間</th><th>時刻</th></tr>";
+"<tr><th>勤務時間</th><th>到達時刻</th></tr>";
 
-let startHourTarget=
+let startTarget=
 Math.floor(
-work1450/60
-)+1;
+floor15(work1450)/15
+)*15
++15;
 
 for(
-let h=startHourTarget;
-h<=11;
-h++
+let work=startTarget;
+work<=660;
+work+=15
 ){
 
 let t=
 dayTargetTime(
 currentStart,
-h*60
+work
 );
 
 if(t){
 
 html +=
 "<tr><td>"
-+h+
-"時間勤務</td><td>"
++
+formatWork(work)
++
+"</td><td>"
 +
 formatTime(t)
 +
@@ -734,7 +827,8 @@ formatTime(t)
 html +=
 "</table>";
 
-html += "<hr>";
+html +=
+"<hr>";
 
 let work2200=
 dayWorkMinutes(
@@ -746,10 +840,24 @@ html +=
 "<h2>22:00時点勤務時間</h2>";
 
 html +=
-"<p class='info'>"
+"<p class='info'>";
+
+html +=
+"実働："
 +
-formatWork(work2200)
+formatWork(work2200);
+
+html +=
+"<br>";
+
+html +=
+"勤務時間："
 +
+formatWork(
+floor15(work2200)
+);
+
+html +=
 "</p>";
 
 detailButtons
@@ -774,17 +882,24 @@ html +=
 "<h2>本日の勤務時間</h2>";
 
 html +=
+"<p class='info'>夜勤開始時刻："
++
+formatTime(currentStart)
++
+"</p>";
+
+html +=
 "<p>";
 
 html +=
-"実績：<b>"
+"実働：<b>"
 +
 formatWork(actual)
 +
 "</b><br>";
 
 html +=
-"15分単位：<b>"
+"勤務時間：<b>"
 +
 formatWork(
 floor15(actual)
@@ -795,33 +910,29 @@ floor15(actual)
 html +=
 "</p>";
 
-html += "<hr>";
+html +=
+getFlexHtml(actual);
 
-let coreOK=
+html +=
+"<hr>";
+// ====================
+// 昼勤（退勤入力あり）の続き
+// ====================
 
-currentStart<=610
-
+let coreOK =
+currentStart <= 610
 &&
-
-end>=890;
+end >= 890;
 
 if(coreOK){
 
 html +=
-"<p class='ok'>"
-+
-"〇 コアタイム適合"
-+
-"</p>";
+"<p class='ok'>〇 コアタイム適合</p>";
 
 }else{
 
 html +=
-"<p class='ng'>"
-+
-"× コアタイム不足"
-+
-"</p>";
+"<p class='ng'>× コアタイム不足</p>";
 
 }
 
@@ -895,14 +1006,14 @@ html +=
 "<p>";
 
 html +=
-"実績：<b>"
+"実働：<b>"
 +
 formatWork(actual)
 +
 "</b><br>";
 
 html +=
-"15分単位：<b>"
+"勤務時間：<b>"
 +
 formatWork(
 floor15(actual)
@@ -913,14 +1024,29 @@ floor15(actual)
 html +=
 "</p>";
 
-let shortage=Math.max(0,480-actual);
+html +=
+getFlexHtml(actual);
+
+let shortage=
+Math.max(
+0,
+480-floor15(actual)
+);
+
+if(shortage>0){
 
 html +=
-"<p class='info'>8時間不足："
+"<p class='info'>";
+
+html +=
+"8時間不足："
 +
-formatWork(shortage)
-+
+formatWork(shortage);
+
+html +=
 "</p>";
+
+}
 
 html +=
 "<hr>";
@@ -938,7 +1064,7 @@ let compare=end;
 
 if(compare<currentStart){
 
-compare += 1440;
+compare +=1440;
 
 }
 
@@ -973,22 +1099,14 @@ shiftText==="対象外"
 if(actual<480){
 
 html +=
-"<p>"
-+
-"（実働8時間未満）"
-+
-"</p>";
+"<p>（実働8時間未満）</p>";
 
 }else if(
 currentStart<720
 ){
 
 html +=
-"<p>"
-+
-"（12:00前出勤）"
-+
-"</p>";
+"<p>（12:00前出勤）</p>";
 
 }
 
