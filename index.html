@@ -199,6 +199,10 @@ th{
 計算
 </button>
 
+<button class="detail" onclick="calculateNow()">
+現時刻退勤時間で計算
+</button>    
+
 <button class="clear" onclick="location.reload()">
 クリア
 </button>
@@ -692,6 +696,23 @@ detailArea.classList.remove(
 );
 
 }
+
+// ====================
+// 現時刻で計算
+// ====================
+
+function calculateNow(){
+
+    const now = new Date();
+
+    endHour.value = now.getHours();
+
+    endMinute.value = now.getMinutes();
+
+    calculate();
+
+}
+    
 
 // ====================
 // メイン計算
