@@ -146,6 +146,48 @@ th{
 
 }
 
+.workTypeButtons{
+    display:flex;
+    gap:10px;
+}
+
+.shiftBtn{
+    flex:1;
+    height:80px;
+    font-size:30px;
+    font-weight:bold;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.shiftBtn.day{
+    background:#dbeafe;
+    color:#1e40af;
+}
+
+.shiftBtn.night{
+    background:#ffedd5;
+    color:#c2410c;
+}
+
+.shiftBtn.active.day{
+    background:#2563eb;
+    color:white;
+}
+
+.shiftBtn.active.night{
+    background:#ea580c;
+    color:white;
+}
+
+.shiftBtn:hover{
+    transform:scale(1.02);
+}
+
+}
+
 </style>
 
 </head>
@@ -158,12 +200,36 @@ th{
 
 <div class="section">
 
+
+
 <label>勤務区分</label>
 
-<select id="workType">
-<option value="day">昼勤</option>
-<option value="night">夜勤</option>
-</select>
+<div class="workTypeButtons">
+
+<button
+type="button"
+id="dayBtn"
+class="shiftBtn day active"
+onclick="setWorkType('day')">
+☀ 昼勤
+</button>
+
+<button
+type="button"
+id="nightBtn"
+class="shiftBtn night"
+onclick="setWorkType('night')">
+🌙 夜勤
+</button>
+
+</div>
+
+<input
+type="hidden"
+id="workType"
+value="day">
+
+
 
 </div>
 
@@ -761,6 +827,35 @@ detailArea.classList.remove(
 );
 
 }
+
+// ====================
+// 勤務区分切替
+// ====================
+
+function setWorkType(type){
+
+    document.getElementById("workType").value = type;
+
+    document.getElementById("dayBtn")
+        .classList.remove("active");
+
+    document.getElementById("nightBtn")
+        .classList.remove("active");
+
+    if(type==="day"){
+
+        document.getElementById("dayBtn")
+            .classList.add("active");
+
+    }else{
+
+        document.getElementById("nightBtn")
+            .classList.add("active");
+
+    }
+
+}
+
 
 // ====================
 // 現時刻で計算
