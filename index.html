@@ -351,6 +351,70 @@ return span-breakTime;
 
 }
 
+
+// ====================
+// 深夜実働時間計算（22:00～5:00）
+// ====================
+
+function nightPremiumMinutes(start,end){
+
+    let finish = end;
+
+    if(finish <= start){
+        finish += 1440;
+    }
+
+    let total = 0;
+
+    for(let t=start; t<finish; t++){
+
+        let clock = t % 1440;
+
+        if(clock >= 1320 || clock < 300){
+
+            let elapsed = t - start;
+
+            let isBreak = false;
+
+            // 19:00～19:10
+            if(elapsed >= 120 && elapsed < 130){
+                isBreak = true;
+            }
+
+            // 21:10～21:50
+            else if(elapsed >= 250 && elapsed < 290){
+                isBreak = true;
+            }
+
+            // 00:00～00:10
+            else if(elapsed >= 420 && elapsed < 430){
+                isBreak = true;
+            }
+
+            // 02:00～02:10
+            else if(elapsed >= 540 && elapsed < 550){
+                isBreak = true;
+            }
+
+            // 04:10～04:20
+            else if(elapsed >= 670 && elapsed < 680){
+                isBreak = true;
+            }
+
+            // 06:20～06:30
+            else if(elapsed >= 800 && elapsed < 810){
+                isBreak = true;
+            }
+
+            if(!isBreak){
+                total++;
+            }
+        }
+    }
+
+    return total;
+}
+
 // ====================
 // 時刻表示
 // ====================
@@ -527,7 +591,7 @@ t
 }else{
 
 html +=
-"<tr><th>勤務時間</th><th>到達時刻</th></tr>";
+"<tr><th>時刻</th><th>勤務時間</th></tr>";
 
 for(
 let work=15;
@@ -563,11 +627,11 @@ if(targetTime){
 html +=
 "<tr><td>"
 +
-formatWork(work)
+formatTime(targetTime)
 +
 "</td><td>"
 +
-formatTime(targetTime)
+formatWork(work)
 +
 "</td></tr>";
 
@@ -635,7 +699,7 @@ t
 }else{
 
 html +=
-"<tr><th>勤務時間</th><th>到達時刻</th></tr>";
+"<tr><th>時刻</th><th>勤務時間</th></tr>";
 
 for(
 let work=30;
@@ -671,11 +735,12 @@ if(targetTime){
 html +=
 "<tr><td>"
 +
-formatWork(work)
+formatTime(targetTime)
 +
 "</td><td>"
 +
-formatTime(targetTime)
+formatWork(work)
+
 +
 "</td></tr>";
 
@@ -709,16 +774,15 @@ function calculateNow(){
 
     endMinute.value = now.getMinutes();
 
-    calculate();
+    calculate(true);
 
-}
-    
+}    
 
 // ====================
 // メイン計算
 // ====================
 
-function calculate(){
+function calculate(isNow=false){
 
 currentMode =
 document.getElementById(
@@ -772,32 +836,36 @@ currentStart,
 890
 );
 
-html +=
-"<h2>14:50時点勤務時間</h2>";
+if(!isNow){
 
-html +=
-"<p class='info'>";
+    html +=
+    "<h2>14:50時点勤務時間</h2>";
 
-html +=
-"実働："
-+
-formatWork(work1450);
+    html +=
+    "<p class='info'>";
 
-html +=
-"<br>";
+    html +=
+    "実働："
+    +
+    formatWork(work1450);
 
-html +=
-"勤務時間："
-+
-formatWork(
-floor15(work1450)
-);
+    html +=
+    "<br>";
 
-html +=
-"</p>";
+    html +=
+    "勤務時間："
+    +
+    formatWork(
+    floor15(work1450)
+    );
 
-html +=
-"<hr>";
+    html +=
+    "</p>";
+
+    html +=
+    "<hr>";
+
+}
 
 if(!hasEnd){
 
@@ -808,7 +876,7 @@ html +=
 "<table>";
 
 html +=
-"<tr><th>勤務時間</th><th>到達時刻</th></tr>";
+"<tr><th>時刻</th><th>勤務時間</th></tr>";
 
 let startTarget=
 Math.floor(
@@ -833,11 +901,12 @@ if(t){
 html +=
 "<tr><td>"
 +
-formatWork(work)
+formatTime(t)
 +
 "</td><td>"
 +
-formatTime(t)
+formatWork(work)
+
 +
 "</td></tr>";
 
@@ -903,7 +972,7 @@ html +=
 "<h2>本日の勤務時間</h2>";
 
 html +=
-"<p class='info'>昼勤開始時刻："
+"<p class='info'>開始時刻："
 +
 formatTime(currentStart)
 +
@@ -1024,6 +1093,13 @@ html +=
 "<h2>本日の勤務時間</h2>";
 
 html +=
+"<p class='info'>開始時刻："
++
+formatTime(currentStart)
++
+"</p>";
+
+html +=
 "<p>";
 
 html +=
@@ -1041,6 +1117,20 @@ floor15(actual)
 )
 +
 "</b>";
+
+let nightPremium =
+nightPremiumMinutes(
+currentStart,
+end
+);
+
+html +=
+"<br>深夜勤務時間(22:00～5:00)：<b>"
++
+formatWork(nightPremium)
++
+"</b>";
+
 
 html +=
 "</p>";
