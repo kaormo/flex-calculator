@@ -521,11 +521,19 @@ return h+"時間"
 
 function floor15(min){
 
-return Math.floor(min/15)*15;
+    return Math.floor(min/15)*15;
 
 }
 
 // ====================
+// 5分切り捨て
+// ====================
+
+function floor5(min){
+
+    return Math.floor(min/5)*5;
+
+}// ====================
 // 昼勤目標時刻
 // ====================
 
@@ -617,107 +625,117 @@ function getFlexHtml(actual){
 
 function show15(){
 
-let html=
-"<h2>15分単位一覧</h2>";
-
-html +=
-"<table>";
+let html = "<h2>15分単位一覧</h2>";
+html += "<table>";
 
 if(currentMode==="day"){
 
-html +=
-"<tr><th>時刻</th><th>勤務時間</th></tr>";
+    html += "<tr><th>時刻</th><th>勤務時間</th></tr>";
 
-for(
-let t=900;
-t<=1320;
-t+=15
-){
+    for(let t=900;t<=1320;t+=15){
 
-html +=
-"<tr><td>"
-+
-formatTime(t)
-+
-"</td><td>"
-+
-formatWork(
-floor15(
-dayWorkMinutes(
-currentStart,
-t
-)
-)
-)
-+
-"</td></tr>";
-
-}
+        html +=
+        "<tr><td>"
+        + formatTime(t)
+        + "</td><td>"
+        + formatWork(
+            floor15(
+                dayWorkMinutes(currentStart,t)
+            )
+        )
+        + "</td></tr>";
+    }
 
 }else{
 
-html +=
-"<tr><th>時刻</th><th>勤務時間</th></tr>";
+    html +=
+    "<tr><th>時刻</th><th>勤務時間</th><th>深夜時間</th></tr>";
 
-for(
-let work=15;
-work<=660;
-work+=15
-){
+    const nightBreaks = [
+        [120,130],
+        [250,290],
+        [420,430],
+        [540,550],
+        [670,680],
+        [800,810]
+    ];
 
-let targetTime=null;
+    let rows = [];
 
-for(
-let span=0;
-span<=1000;
-span++
-){
+    // 勤務時間行作成
+    for(let work=15;work<=780;work+=15){
 
-let actual=
-span-
-nightBreakMinutes(span);
+        let targetTime = null;
 
-if(actual>=work){
+        for(let span=0;span<=1000;span++){
 
-targetTime=
-currentStart+span;
+            let actual =
+            span - nightBreakMinutes(span);
 
-break;
+            if(actual >= work){
+
+                targetTime =
+                currentStart + span;
+
+                break;
+            }
+        }
+
+        if(targetTime){
+
+            rows.push({
+                type:"work",
+                sort:targetTime,
+                html:
+                "<tr><td>"
+                + formatTime(targetTime)
+                + "</td><td>"
+                + formatWork(work)
+                + "</td><td>"
+                + formatWork(
+                  nightPremiumMinutes(
+                    currentStart,
+                    targetTime
+)
+                )
+                + "</td></tr>"
+            });
+        }
+    }
+
+    // 休憩行作成
+    for(let b of nightBreaks){
+
+        rows.push({
+            type:"break",
+            sort:currentStart + b[0],
+            html:
+            "<tr style='background:#FFF3CD;font-weight:bold;'>"
+            + "<td colspan='3'>休憩 "
+            + formatTime(currentStart+b[0])
+            + "～"
+            + formatTime(currentStart+b[1])
+            + "</td></tr>"
+        });
+    }
+
+    // 時刻順に並べ替え
+    rows.sort((a,b)=>a.sort-b.sort);
+
+    // 出力
+    for(let r of rows){
+
+        html += r.html;
+    }
+}
+
+html += "</table>";
+
+detailArea.innerHTML = html;
+detailArea.classList.remove("hidden");
 
 }
 
-}
-
-if(targetTime){
-
-html +=
-"<tr><td>"
-+
-formatTime(targetTime)
-+
-"</td><td>"
-+
-formatWork(work)
-+
-"</td></tr>";
-
-}
-
-}
-
-}
-
-html +=
-"</table>";
-
-detailArea.innerHTML=
-html;
-
-detailArea.classList.remove(
-"hidden"
-);
-
-}
 
 // ====================
 // 30分単位表示
@@ -725,106 +743,114 @@ detailArea.classList.remove(
 
 function show30(){
 
-let html=
-"<h2>30分単位一覧</h2>";
-
-html +=
-"<table>";
+let html = "<h2>30分単位一覧</h2>";
+html += "<table>";
 
 if(currentMode==="day"){
 
-html +=
-"<tr><th>時刻</th><th>勤務時間</th></tr>";
+    html += "<tr><th>時刻</th><th>勤務時間</th></tr>";
 
-for(
-let t=900;
-t<=1320;
-t+=30
-){
+    for(let t=900;t<=1320;t+=30){
 
-html +=
-"<tr><td>"
-+
-formatTime(t)
-+
-"</td><td>"
-+
-formatWork(
-floor15(
-dayWorkMinutes(
-currentStart,
-t
-)
-)
-)
-+
-"</td></tr>";
-
-}
+        html +=
+        "<tr><td>"
+        + formatTime(t)
+        + "</td><td>"
+        + formatWork(
+            floor15(
+                dayWorkMinutes(currentStart,t)
+            )
+        )
+        + "</td></tr>";
+    }
 
 }else{
 
-html +=
-"<tr><th>時刻</th><th>勤務時間</th></tr>";
+    html +=
+    "<tr><th>時刻</th><th>勤務時間</th><th>深夜時間</th></tr>";
 
-for(
-let work=30;
-work<=660;
-work+=30
-){
+    const nightBreaks = [
+        [120,130],
+        [250,290],
+        [420,430],
+        [540,550],
+        [670,680],
+        [800,810]
+    ];
 
-let targetTime=null;
+    let rows = [];
 
-for(
-let span=0;
-span<=1000;
-span++
-){
+    // 勤務時間行作成
+    for(let work=30;work<=780;work+=30){
 
-let actual=
-span-
-nightBreakMinutes(span);
+        let targetTime = null;
 
-if(actual>=work){
+        for(let span=0;span<=1000;span++){
 
-targetTime=
-currentStart+span;
+            let actual =
+            span - nightBreakMinutes(span);
 
-break;
+            if(actual >= work){
 
+                targetTime =
+                currentStart + span;
+
+                break;
+            }
+        }
+
+        if(targetTime){
+
+            rows.push({
+                type:"work",
+                sort:targetTime,
+                html:
+                "<tr><td>"
+                + formatTime(targetTime)
+                + "</td><td>"
+                + formatWork(work)
+                + "</td><td>"
+                + formatWork(
+                    nightPremiumMinutes(
+                        currentStart,
+                        targetTime
+                    )
+                )
+                + "</td></tr>"
+            });
+        }
+    }
+
+    // 休憩行作成
+    for(let b of nightBreaks){
+
+        rows.push({
+            type:"break",
+            sort:currentStart + b[0],
+            html:
+            "<tr style='background:#FFF3CD;font-weight:bold;'>"
+            + "<td colspan='3'>休憩 "
+            + formatTime(currentStart+b[0])
+            + "～"
+            + formatTime(currentStart+b[1])
+            + "</td></tr>"
+        });
+    }
+
+    // 時刻順に並べ替え
+    rows.sort((a,b)=>a.sort-b.sort);
+
+    // 出力
+    for(let r of rows){
+
+        html += r.html;
+    }
 }
 
-}
+html += "</table>";
 
-if(targetTime){
-
-html +=
-"<tr><td>"
-+
-formatTime(targetTime)
-+
-"</td><td>"
-+
-formatWork(work)
-
-+
-"</td></tr>";
-
-}
-
-}
-
-}
-
-html +=
-"</table>";
-
-detailArea.innerHTML=
-html;
-
-detailArea.classList.remove(
-"hidden"
-);
+detailArea.innerHTML = html;
+detailArea.classList.remove("hidden");
 
 }
 
@@ -1222,7 +1248,9 @@ end
 html +=
 "<br>深夜勤務時間(22:00～5:00)：<b>"
 +
-formatWork(nightPremium)
+formatWork(
+    floor5(nightPremium)
+)
 +
 "</b>";
 
